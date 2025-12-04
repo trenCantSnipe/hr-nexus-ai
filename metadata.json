@@ -1,0 +1,8 @@
+{
+  "name": "HR Nexus AI",
+  "description": "An intelligent HR management suite powered by Gemini. Features AI-driven recruitment, performance reviews with reasoning, real-time voice assistance, and grounded research tools.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}
