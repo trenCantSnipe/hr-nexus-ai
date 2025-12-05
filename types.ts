@@ -1,3 +1,4 @@
+
 export interface Employee {
   id: string;
   name: string;
@@ -14,6 +15,8 @@ export interface Candidate {
   status: 'Applied' | 'Screening' | 'Interview' | 'Offer' | 'Rejected';
   experience: string;
   email: string;
+  appliedDate: string;
+  notes?: string;
 }
 
 export interface Interview {
@@ -31,7 +34,10 @@ export enum ViewState {
   PERFORMANCE = 'PERFORMANCE',
   AUDIT = 'AUDIT',
   CHAT_ASSISTANT = 'CHAT_ASSISTANT',
-  LIVE_VOICE = 'LIVE_VOICE'
+  LIVE_VOICE = 'LIVE_VOICE',
+  EMPLOYEE_PORTAL = 'EMPLOYEE_PORTAL',
+  ADMIN_ASSISTANT = 'ADMIN_ASSISTANT',
+  ADMIN_REPORTS = 'ADMIN_REPORTS'
 }
 
 export interface ChatMessage {
@@ -43,4 +49,23 @@ export interface ChatMessage {
     search?: { uri: string; title: string }[];
     maps?: { uri: string; title: string }[];
   };
+}
+
+export type UserRole = 'ADMIN' | 'EMPLOYEE';
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  period: 'Day' | 'Week' | 'Month';
+  status: 'Not Started' | 'In Progress' | 'Completed';
+}
+
+export interface DailyReport {
+  id: string;
+  employeeName: string;
+  date: string;
+  content: string;
+  targetsMet: boolean;
+  timestamp: Date;
 }

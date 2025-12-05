@@ -1,4 +1,5 @@
-import { Candidate, Employee, Interview } from './types';
+
+import { Candidate, Employee, Interview, Task, DailyReport } from './types';
 
 export const MOCK_EMPLOYEES: Employee[] = [
   {
@@ -46,7 +47,9 @@ export const MOCK_CANDIDATES: Candidate[] = [
     role: 'Backend Engineer',
     status: 'Interview',
     experience: '5 years Node.js, Python',
-    email: 'david.lee@example.com'
+    email: 'david.lee@example.com',
+    appliedDate: '2023-10-20',
+    notes: 'Strong technical skills in system design. Cultural fit seems promising. Needs to clarify availability for start date.'
   },
   {
     id: 'c2',
@@ -54,7 +57,9 @@ export const MOCK_CANDIDATES: Candidate[] = [
     role: 'Marketing Specialist',
     status: 'Applied',
     experience: '3 years SEO, Content Marketing',
-    email: 'eva.green@example.com'
+    email: 'eva.green@example.com',
+    appliedDate: '2023-10-24',
+    notes: 'Portfolio looks impressive. Good experience with B2B SaaS.'
   },
   {
     id: 'c3',
@@ -62,7 +67,9 @@ export const MOCK_CANDIDATES: Candidate[] = [
     role: 'Data Scientist',
     status: 'Screening',
     experience: 'PhD in Statistics, 2 years industry',
-    email: 'frank.white@example.com'
+    email: 'frank.white@example.com',
+    appliedDate: '2023-10-15',
+    notes: ''
   }
 ];
 
@@ -74,5 +81,55 @@ export const MOCK_INTERVIEWS: Interview[] = [
     time: '14:00',
     interviewer: 'Alice Johnson',
     type: 'Technical'
+  }
+];
+
+export const MOCK_TASKS: Task[] = [
+  {
+    id: 't1',
+    title: 'Complete Component Migration',
+    description: 'Finish migrating the sidebar to use Tailwind CSS completely.',
+    period: 'Day',
+    status: 'In Progress'
+  },
+  {
+    id: 't2',
+    title: 'Code Review for PR #342',
+    description: 'Review the new authentication flow logic.',
+    period: 'Day',
+    status: 'Completed'
+  },
+  {
+    id: 't3',
+    title: 'Update Documentation',
+    description: 'Ensure the API docs reflect the latest v2 changes.',
+    period: 'Week',
+    status: 'Not Started'
+  },
+  {
+    id: 't4',
+    title: 'Performance Optimization',
+    description: 'Reduce bundle size by 15%.',
+    period: 'Month',
+    status: 'Not Started'
+  }
+];
+
+export const MOCK_REPORTS: DailyReport[] = [
+  {
+    id: 'r1',
+    employeeName: 'Alice Johnson',
+    date: '2023-10-26',
+    content: 'Completed the migration of the auth module. Started working on the new dashboard widgets. Faced some issues with the legacy API but resolved them.',
+    targetsMet: true,
+    timestamp: new Date('2023-10-26T17:30:00')
+  },
+  {
+    id: 'r2',
+    employeeName: 'Bob Smith',
+    date: '2023-10-26',
+    content: 'Meeting with stakeholders regarding Q4 roadmap. Updated JIRA tickets. Could not finish the PRD review due to time constraints.',
+    targetsMet: false,
+    timestamp: new Date('2023-10-26T16:45:00')
   }
 ];

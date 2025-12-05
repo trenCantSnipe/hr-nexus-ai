@@ -1,4 +1,4 @@
-import { GoogleGenAI, Modality, Type, LiveServerMessage } from "@google/genai";
+import { GoogleGenAI, Modality, Type, LiveServerMessage, FunctionDeclaration } from "@google/genai";
 import { base64ToUint8Array, createPcmBlob, decodeAudioData } from "../utils/audioUtils";
 
 const apiKey = process.env.API_KEY || ''; // Ensure this is set in your environment
@@ -60,6 +60,129 @@ export const generateInterviewQuestions = async (role: string, experience: strin
   } catch (error) {
     console.error("Error generating questions:", error);
     return ["Could not generate questions. Please try again."];
+  }
+};
+
+// --- Interview Response Analysis ---
+export const analyzeCandidateResponse = async (role: string, question: string, answer: string) => {
+  const prompt = `
+    You are an expert interviewer hiring for a ${role} position.
+    
+    Question Asked: "${question}"
+    Candidate Answer: "${answer}"
+    
+    Analyze the candidate's response. Provide:
+    1. A rating out of 10.
+    2. A concise feedback summary (2 sentences max).
+    3. Key improvements or missing points (bullet points).
+    
+    Return pure JSON.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+                rating: { type: Type.INTEGER },
+                feedback: { type: Type.STRING },
+                improvements: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+        }
+      }
+    });
+    return JSON.parse(response.text || '{}');
+  } catch (error) {
+    console.error("Analysis Error:", error);
+    return {
+        rating: 0,
+        feedback: "Could not analyze response.",
+        improvements: []
+    };
+  }
+};
+
+// --- Auto-Schedule Proposal ---
+export const suggestInterviewTime = async (candidateName: string, role: string) => {
+  const prompt = `
+    You are an intelligent AI scheduler for HR Nexus. 
+    Suggest an optimal interview time for ${candidateName}, who is applying for the ${role} position.
+    
+    Assume today is ${new Date().toDateString()}.
+    Rules:
+    - Schedule for a weekday within the next 7 days.
+    - Business hours only (09:00 to 17:00).
+    - Avoid common lunch times (12:00-13:00).
+    
+    Return a JSON object with:
+    - date (YYYY-MM-DD)
+    - time (HH:MM 24-hour format)
+    - reason (A brief, professional explanation of why this time was chosen, e.g., "Mid-week morning slots often result in better candidate focus.")
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            date: { type: Type.STRING },
+            time: { type: Type.STRING },
+            reason: { type: Type.STRING }
+          }
+        }
+      }
+    });
+    return JSON.parse(response.text || 'null');
+  } catch (error) {
+    console.error("Scheduling Error:", error);
+    throw error;
+  }
+};
+
+// --- Email Auto-Drafting ---
+export const draftRecruitmentEmail = async (candidateName: string, role: string, status: string) => {
+  const prompt = `
+    You are an HR Manager at "HR Nexus AI". Write a professional email to ${candidateName}, who applied for the ${role} position.
+    
+    Current Status: "${status}"
+    
+    Instructions based on status:
+    - Applied: Acknowledge receipt of application.
+    - Screening: Invite them for a preliminary phone screen.
+    - Interview: Confirm they have moved to the interview stage or ask for availability.
+    - Offer: Congratulate them and mention an offer letter is attached.
+    - Rejected: Politely decline the application.
+
+    Return JSON with 'subject' and 'body'. The body should be formatted with newlines.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            subject: { type: Type.STRING },
+            body: { type: Type.STRING }
+          }
+        }
+      }
+    });
+    return JSON.parse(response.text || '{"subject": "", "body": ""}');
+  } catch (error) {
+    console.error("Drafting Error:", error);
+    return { subject: "Update regarding your application", body: "" };
   }
 };
 
@@ -132,6 +255,72 @@ export const chatWithGrounding = async (
     console.error("Error in chat:", error);
     throw error;
   }
+};
+
+// --- Admin Assistant with Tools ---
+const taskFunctionDeclaration: FunctionDeclaration = {
+  name: "assign_task_to_all",
+  description: "Assign a task to all employees that will appear in their portal.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      title: { type: Type.STRING, description: "The title of the task." },
+      description: { type: Type.STRING, description: "Detailed description of the task." },
+      period: { 
+        type: Type.STRING, 
+        description: "The time period for the task (Day, Week, or Month).",
+        enum: ["Day", "Week", "Month"]
+      },
+      status: {
+        type: Type.STRING,
+        description: "The initial status of the task.",
+        enum: ["Not Started", "In Progress", "Completed"]
+      }
+    },
+    required: ["title", "description", "period"]
+  }
+};
+
+const emailFunctionDeclaration: FunctionDeclaration = {
+  name: "send_email_to_all",
+  description: "Send an email announcement to all employees.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      subject: { type: Type.STRING, description: "Subject of the email." },
+      body: { type: Type.STRING, description: "Body content of the email." }
+    },
+    required: ["subject", "body"]
+  }
+};
+
+export const chatWithAdminTools = async (
+  history: { role: 'user' | 'model'; text: string }[],
+  currentMessage: string
+) => {
+    const contents = [
+        ...history.map(h => ({ role: h.role, parts: [{ text: h.text }] })),
+        { role: 'user', parts: [{ text: currentMessage }] }
+    ];
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: contents,
+            config: {
+                tools: [{ functionDeclarations: [taskFunctionDeclaration, emailFunctionDeclaration] }],
+            }
+        });
+        
+        return {
+            text: response.text,
+            functionCalls: response.functionCalls,
+            candidates: response.candidates // Pass candidates back for context if needed later
+        };
+    } catch (error) {
+        console.error("Admin Tool Error", error);
+        throw error;
+    }
 };
 
 // --- TTS Service ---

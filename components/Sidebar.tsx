@@ -1,21 +1,33 @@
+
 import React from 'react';
-import { ViewState } from '../types';
-import { LayoutDashboard, Users, FileText, Mic, MessageSquare, ClipboardCheck } from 'lucide-react';
+import { ViewState, UserRole } from '../types';
+import { LayoutDashboard, Users, FileText, Mic, MessageSquare, ClipboardCheck, Briefcase, LogOut, Terminal, ClipboardList } from 'lucide-react';
 
 interface SidebarProps {
   currentView: ViewState;
   setView: (view: ViewState) => void;
+  userRole: UserRole;
+  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
-  const menuItems = [
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLogout }) => {
+  
+  const adminItems = [
     { id: ViewState.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
+    { id: ViewState.ADMIN_REPORTS, label: 'Daily Reports', icon: ClipboardList },
     { id: ViewState.RECRUITMENT, label: 'Recruitment', icon: Users },
     { id: ViewState.PERFORMANCE, label: 'Performance', icon: FileText },
     { id: ViewState.AUDIT, label: 'Audit & Compliance', icon: ClipboardCheck },
     { id: ViewState.CHAT_ASSISTANT, label: 'HR Assistant', icon: MessageSquare },
+    { id: ViewState.ADMIN_ASSISTANT, label: 'AI Admin Tools', icon: Terminal },
     { id: ViewState.LIVE_VOICE, label: 'Voice Mode', icon: Mic },
   ];
+
+  const employeeItems = [
+    { id: ViewState.EMPLOYEE_PORTAL, label: 'My Workspace', icon: Briefcase },
+  ];
+
+  const menuItems = userRole === 'ADMIN' ? adminItems : employeeItems;
 
   return (
     <div className="w-64 bg-slate-900 text-white h-full flex flex-col shadow-xl">
@@ -25,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
         </h1>
         <p className="text-xs text-slate-400 mt-1">Powered by Gemini</p>
       </div>
+      
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -45,11 +58,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
           );
         })}
       </nav>
-      <div className="p-4 border-t border-slate-700">
+
+      <div className="p-4 border-t border-slate-700 space-y-4">
         <div className="bg-slate-800 rounded-lg p-3">
           <p className="text-sm font-medium">Logged in as</p>
-          <p className="text-xs text-slate-400">Admin User</p>
+          <p className="text-xs text-slate-400 capitalize">{userRole.toLowerCase()}</p>
         </div>
+        
+        <button 
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-red-900/50 text-slate-300 hover:text-red-200 rounded-lg transition-colors text-sm font-medium"
+        >
+          <LogOut size={16} /> Logout
+        </button>
       </div>
     </div>
   );
