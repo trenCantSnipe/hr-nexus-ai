@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MOCK_CANDIDATES, MOCK_INTERVIEWS } from '../constants';
 import { Candidate, Interview } from '../types';
-import { Calendar, Clock, User, Sparkles, Mail, Send, X, CheckCircle2, Search, Filter, ArrowUpDown, Bold, Italic, Link as LinkIcon, List, Paperclip, Mic, Play, Square, Award, MessageSquare, Volume2, ArrowRight, Loader2, Users, Wand2, CalendarCheck, StickyNote, Save } from 'lucide-react';
+import { Calendar, Clock, User, Sparkles, Mail, Send, X, CheckCircle2, Search, Filter, ArrowUpDown, Bold, Italic, Link as LinkIcon, List, Paperclip, Mic, Play, Square, Award, MessageSquare, Volume2, ArrowRight, Loader2, Users, Wand2, CalendarCheck, StickyNote, Save, ChevronRight } from 'lucide-react';
 import { generateInterviewQuestions, analyzeCandidateResponse, generateSpeech, draftRecruitmentEmail, suggestInterviewTime } from '../services/geminiService';
 
 const getStatusColor = (status: string) => {
@@ -89,6 +89,33 @@ const Recruitment: React.FC = () => {
       setIsAnalyzing(false);
       setAnalysisResult(null);
       setTranscript([]);
+  };
+
+  const handleFinishSession = () => {
+      if (!selectedCandidate) {
+          resetInterviewSession();
+          return;
+      }
+      
+      const sessionLog = transcript.map((t, i) => `
+[Q${i+1}] ${t.question}
+Answer: ${t.answer}
+>> AI Feedback (${t.analysis.rating}/10): ${t.analysis.feedback}
+`).join('\n');
+
+      const timestamp = new Date().toLocaleString();
+      const newNoteEntry = `\n\n=== AI Interview Log (${timestamp}) ===\n${sessionLog}`;
+      
+      const updatedNotes = (noteInput || '') + newNoteEntry;
+      setNoteInput(updatedNotes);
+      
+      const updatedCandidates = candidates.map(c => 
+          c.id === selectedCandidate.id ? { ...c, notes: updatedNotes } : c
+      );
+      setCandidates(updatedCandidates);
+      setSelectedCandidate({ ...selectedCandidate, notes: updatedNotes });
+      
+      resetInterviewSession();
   };
 
   // Filter & Sort Logic
@@ -660,15 +687,40 @@ const Recruitment: React.FC = () => {
                             // --- AI INTERVIEW INTERFACE ---
                             <div className="bg-white rounded-xl border border-indigo-100 shadow-lg flex flex-col h-[500px] overflow-hidden">
                                 {interviewMode === 'summary' ? (
-                                    <div className="p-8 flex flex-col items-center justify-center h-full space-y-6">
-                                        <div className="bg-indigo-100 p-4 rounded-full text-indigo-600">
-                                            <Award size={48} />
+                                    <div className="p-0 flex flex-col h-full bg-slate-50">
+                                        <div className="p-6 bg-white border-b border-slate-100 text-center">
+                                            <div className="w-12 h-12 bg-indigo-100 rounded-full text-indigo-600 flex items-center justify-center mx-auto mb-3">
+                                                <Award size={24} />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-800">Interview Session Complete</h3>
+                                            <p className="text-sm text-slate-500">Review the transcript below before finishing.</p>
                                         </div>
-                                        <h3 className="text-2xl font-bold text-slate-800">Interview Session Complete</h3>
-                                        <p className="text-slate-500 text-center max-w-md">You've completed {transcript.length} questions. Review the transcripts in your notes or start a new session.</p>
-                                        <button onClick={resetInterviewSession} className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition">
-                                            Finish Session
-                                        </button>
+                                        
+                                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                                            {transcript.map((item, idx) => (
+                                                <div key={idx} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+                                                    <div className="flex items-start gap-3 mb-2">
+                                                        <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded">Q{idx+1}</span>
+                                                        <p className="font-medium text-slate-800 text-sm">{item.question}</p>
+                                                    </div>
+                                                    <div className="pl-10 space-y-2">
+                                                        <div className="text-sm text-slate-600 italic bg-slate-50 p-2 rounded">"{item.answer}"</div>
+                                                        <div className="flex items-center gap-2 text-xs">
+                                                            <span className="font-bold text-emerald-600">AI Score: {item.analysis.rating}/10</span>
+                                                            <span className="text-slate-300">|</span>
+                                                            <span className="text-slate-500">{item.analysis.feedback}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
+                                        <div className="p-4 bg-white border-t border-slate-200 flex justify-end gap-3">
+                                            <button onClick={resetInterviewSession} className="text-slate-500 hover:text-red-600 text-sm font-medium px-4 py-2 transition">Discard</button>
+                                            <button onClick={handleFinishSession} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition flex items-center gap-2">
+                                                <Save size={16} /> Save to Notes & Finish
+                                            </button>
+                                        </div>
                                     </div>
                                 ) : (
                                     <>

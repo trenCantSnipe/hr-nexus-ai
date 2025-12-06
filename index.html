@@ -21,6 +21,16 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8; 
       }
+
+      /* Global Button "High End" Tactile Feel */
+      button {
+        transition: filter 0.2s, scale 0.1s ease-in-out;
+      }
+      
+      /* Use the modern 'scale' property to avoid conflict with Tailwind 'transform' classes */
+      button:active {
+        scale: 0.96;
+      }
     </style>
   <script type="importmap">
 {
@@ -38,5 +48,28 @@
 </head>
   <body class="bg-slate-50 text-slate-900 font-sans antialiased h-screen overflow-hidden">
     <div id="root" class="h-full"></div>
+    <script>
+      // Global Haptic Feedback Listener
+      document.addEventListener('mousedown', (e) => {
+        // Find closest button or clickable element
+        const target = e.target.closest('button, a, [role="button"]');
+        if (target) {
+          // Trigger vibration if supported
+          if (typeof navigator.vibrate === 'function') {
+            navigator.vibrate(10); // Short, crisp tick
+          }
+        }
+      });
+      
+      // Also trigger on touchstart for mobile responsiveness without waiting for click
+      document.addEventListener('touchstart', (e) => {
+        const target = e.target.closest('button, a, [role="button"]');
+        if (target) {
+          if (typeof navigator.vibrate === 'function') {
+            navigator.vibrate(10);
+          }
+        }
+      }, { passive: true });
+    </script>
   </body>
 </html>

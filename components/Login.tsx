@@ -1,26 +1,40 @@
+
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { Lock, User, Briefcase } from 'lucide-react';
+import { Lock, User, Briefcase, Hash } from 'lucide-react';
 
 interface LoginProps {
-  onLogin: (role: UserRole) => void;
+  onLogin: (role: UserRole, employeeId?: string) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [role, setRole] = useState<UserRole>('ADMIN');
   const [password, setPassword] = useState('');
+  const [rollNumber, setRollNumber] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (role === 'ADMIN' && password === '123') {
-      onLogin('ADMIN');
-    } else if (role === 'EMPLOYEE' && password === '456') {
-      onLogin('EMPLOYEE');
-    } else {
-      setError('Invalid password');
+    if (role === 'ADMIN') {
+      if (password === '123') {
+        onLogin('ADMIN');
+      } else {
+        setError('Invalid admin password');
+      }
+    } else if (role === 'EMPLOYEE') {
+      const roll = parseInt(rollNumber);
+      if (isNaN(roll) || roll < 1 || roll > 20) {
+        setError('Roll number must be between 1 and 20');
+        return;
+      }
+      
+      if (password === '456') {
+        onLogin('EMPLOYEE', rollNumber);
+      } else {
+        setError('Invalid employee password');
+      }
     }
   };
 
@@ -39,7 +53,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="grid grid-cols-2 gap-4 p-1 bg-slate-100 rounded-xl">
             <button
               type="button"
-              onClick={() => { setRole('ADMIN'); setPassword(''); setError(''); }}
+              onClick={() => { setRole('ADMIN'); setPassword(''); setRollNumber(''); setError(''); }}
               className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 role === 'ADMIN' 
                   ? 'bg-white text-blue-600 shadow-sm' 
@@ -61,22 +75,46 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </button>
           </div>
 
-          {/* Password Input */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder={role === 'ADMIN' ? "Enter '123'" : "Enter '456'"}
-              />
+          <div className="space-y-4">
+            {/* Roll Number Input (Employee Only) */}
+            {role === 'EMPLOYEE' && (
+              <div className="space-y-2 animate-slide-down">
+                <label className="text-sm font-medium text-slate-700">
+                  Roll Number (1-20)
+                </label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={rollNumber}
+                    onChange={(e) => setRollNumber(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Enter Roll Number"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Password Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Enter Password" // Placeholder hidden as per previous request, generic text used
+                />
+              </div>
+              {error && <p className="text-red-500 text-xs pl-1">{error}</p>}
             </div>
-            {error && <p className="text-red-500 text-xs pl-1">{error}</p>}
           </div>
 
           <button
@@ -85,7 +123,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 role === 'ADMIN' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-indigo-600 hover:bg-indigo-700'
             }`}
           >
-            Sign In as {role === 'ADMIN' ? 'Admin' : 'Employee'}
+            Sign In as {role === 'ADMIN' ? 'Admin' : `Employee ${rollNumber ? '#' + rollNumber : ''}`}
           </button>
         </form>
 

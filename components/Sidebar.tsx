@@ -8,13 +8,14 @@ interface SidebarProps {
   setView: (view: ViewState) => void;
   userRole: UserRole;
   onLogout: () => void;
+  notificationCount?: number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLogout, notificationCount = 0 }) => {
   
   const adminItems = [
     { id: ViewState.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-    { id: ViewState.ADMIN_REPORTS, label: 'Daily Reports', icon: ClipboardList },
+    { id: ViewState.ADMIN_REPORTS, label: 'Daily Reports', icon: ClipboardList, hasNotification: true },
     { id: ViewState.RECRUITMENT, label: 'Recruitment', icon: Users },
     { id: ViewState.PERFORMANCE, label: 'Performance', icon: FileText },
     { id: ViewState.AUDIT, label: 'Audit & Compliance', icon: ClipboardCheck },
@@ -42,18 +43,28 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLog
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
+          // @ts-ignore - checking for custom property
+          const showBadge = item.hasNotification && notificationCount > 0;
+
           return (
             <button
               key={item.id}
               onClick={() => setView(item.id)}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors group ${
                 isActive
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <Icon size={20} />
-              <span className="font-medium">{item.label}</span>
+              <div className="flex items-center space-x-3">
+                <Icon size={20} />
+                <span className="font-medium">{item.label}</span>
+              </div>
+              {showBadge && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-bounce">
+                    {notificationCount}
+                </span>
+              )}
             </button>
           );
         })}

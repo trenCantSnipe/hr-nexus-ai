@@ -1,42 +1,53 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Task } from '../types';
-import { CheckCircle2, Circle, Calendar, Clock, Send, Target, AlertTriangle, Loader2, ChevronDown } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, Clock, Send, Target, AlertTriangle, Loader2, ChevronDown, MessageCircle, User } from 'lucide-react';
 
 interface EmployeePortalProps {
+  employeeId: string;
   tasks: Task[];
   onSubmitReport: (content: string, targetsMet: boolean) => void;
   onUpdateTaskStatus: (taskId: string, newStatus: 'Not Started' | 'In Progress' | 'Completed') => void;
 }
 
-const EmployeePortal: React.FC<EmployeePortalProps> = ({ tasks, onSubmitReport, onUpdateTaskStatus }) => {
+const EmployeePortal: React.FC<EmployeePortalProps> = ({ employeeId, tasks, onSubmitReport, onUpdateTaskStatus }) => {
   const [activeTab, setActiveTab] = useState<'Day' | 'Week' | 'Month'>('Day');
   const [workDone, setWorkDone] = useState('');
   const [targetsMet, setTargetsMet] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  
+  // Local history for the chat session
+  const [sessionMessages, setSessionMessages] = useState<{text: string, time: Date, targets: boolean}[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const filteredTasks = tasks.filter(t => t.period === activeTab);
 
-  const handleSubmitClick = (e: React.FormEvent) => {
+  const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!workDone.trim()) return;
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmSubmission = () => {
-    setShowConfirmDialog(false);
+    
     setIsSubmitting(true);
     
-    // Simulate network delay
+    // Simulate network delay and sending to chat
     setTimeout(() => {
         onSubmitReport(workDone, targetsMet);
+        
+        // Add to local chat history
+        setSessionMessages(prev => [...prev, {
+            text: workDone,
+            time: new Date(),
+            targets: targetsMet
+        }]);
+
         setIsSubmitting(false);
         setWorkDone('');
-        setTargetsMet(false);
-        alert("Daily report submitted successfully to Admin.");
-    }, 800);
+        // We keep targetsMet as is, or reset if preferred. Let's keep it for context.
+    }, 500);
   };
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [sessionMessages]);
 
   const getStatusStyles = (status: string) => {
     switch (status) {
@@ -66,15 +77,26 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ tasks, onSubmitReport, 
 
   return (
     <div className="p-8 h-full overflow-y-auto bg-slate-50 relative">
-      <header className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800">My Workspace</h2>
-        <p className="text-slate-500">Track your progress and report to management.</p>
+      <header className="mb-8 flex justify-between items-end">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800">My Workspace</h2>
+          <p className="text-slate-500">Track your progress and report to management.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2 shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                {employeeId}
+            </div>
+            <div>
+                <p className="text-xs text-slate-400 uppercase tracking-wide font-bold">Logged In As</p>
+                <p className="text-sm font-semibold text-slate-800">Employee #{employeeId}</p>
+            </div>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100%-100px)]">
         
         {/* Left Column: Tasks */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
             <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                 <h3 className="font-semibold text-slate-700 flex items-center gap-2">
                     <Calendar size={18} className="text-blue-500"/> Assigned Tasks
@@ -160,84 +182,87 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ tasks, onSubmitReport, 
             </div>
         </div>
 
-        {/* Right Column: Reporting */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-fit">
-            <h3 className="font-semibold text-slate-700 mb-6 flex items-center gap-2">
-                <Clock size={18} className="text-green-500"/> Daily Report Submission
-            </h3>
+        {/* Right Column: Work Log Chat */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-200">
+                <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                    <MessageCircle size={18} className="text-green-500"/> Daily Work Chat
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">Send updates to Admin in real-time.</p>
+            </div>
 
-            <form onSubmit={handleSubmitClick} className="space-y-6">
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Task Completion & Work Log
-                    </label>
+            {/* Chat History */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
+                {sessionMessages.length === 0 && (
+                    <div className="text-center text-slate-400 py-10">
+                        <p className="text-sm">No updates sent today.</p>
+                        <p className="text-xs mt-1">Start describing your work below.</p>
+                    </div>
+                )}
+                {sessionMessages.map((msg, idx) => (
+                    <div key={idx} className="flex flex-col items-end animate-slide-up">
+                         <div className="bg-blue-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[90%] shadow-sm">
+                            <p className="text-sm">{msg.text}</p>
+                         </div>
+                         <div className="flex items-center gap-2 mt-1">
+                            {msg.targets && (
+                                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-200">
+                                    Targets Met
+                                </span>
+                            )}
+                            <span className="text-[10px] text-slate-400">
+                                {msg.time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </span>
+                         </div>
+                    </div>
+                ))}
+                <div ref={chatEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="p-4 border-t border-slate-200 bg-white">
+                <form onSubmit={handleSendMessage} className="space-y-3">
                     <textarea 
                         required
-                        className="w-full h-40 p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none resize-none text-sm"
-                        placeholder="Detail all work completed today. This will be sent to the admin for review..."
+                        className="w-full h-24 p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none text-sm bg-slate-50 focus:bg-white transition-colors"
+                        placeholder="Describe your daily work done..."
                         value={workDone}
                         onChange={(e) => setWorkDone(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage(e);
+                            }
+                        }}
                     />
-                </div>
 
-                <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-100">
-                    <div className={`p-2 rounded-full ${targetsMet ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'}`}>
-                        <Target size={20} />
-                    </div>
-                    <div className="flex-1">
-                        <label htmlFor="targets" className="text-sm font-medium text-slate-800 block cursor-pointer">
-                            Daily Targets Met
+                    <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 hover:text-slate-800 transition">
+                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition ${targetsMet ? 'bg-green-500 border-green-500 text-white' : 'border-slate-300 bg-white'}`}>
+                                {targetsMet && <Target size={14} />}
+                            </div>
+                            <input 
+                                type="checkbox" 
+                                className="hidden"
+                                checked={targetsMet}
+                                onChange={(e) => setTargetsMet(e.target.checked)}
+                            />
+                            <span>Targets Met?</span>
                         </label>
-                        <p className="text-xs text-slate-500">Check this if you completed all assigned goals.</p>
+
+                        <button 
+                            type="submit" 
+                            disabled={isSubmitting || !workDone.trim()}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium transition shadow-sm flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting ? <Loader2 size={16} className="animate-spin"/> : <Send size={16} />}
+                            Send
+                        </button>
                     </div>
-                    <input 
-                        id="targets"
-                        type="checkbox" 
-                        className="w-5 h-5 accent-green-600 cursor-pointer"
-                        checked={targetsMet}
-                        onChange={(e) => setTargetsMet(e.target.checked)}
-                    />
-                </div>
-
-                <button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl font-medium transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-70"
-                >
-                    {isSubmitting ? 'Submitting...' : <>Submit Report <Send size={16} /></>}
-                </button>
-            </form>
-        </div>
-      </div>
-
-      {/* Confirmation Dialog Overlay */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-scale-up">
-                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4 text-amber-600 mx-auto">
-                    <AlertTriangle size={24} />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 text-center mb-2">Confirm Submission</h3>
-                <p className="text-sm text-slate-500 text-center mb-6">
-                    Are you sure you want to submit your daily report? This action cannot be undone and will be sent to the admin immediately.
-                </p>
-                <div className="flex gap-3">
-                    <button 
-                        onClick={() => setShowConfirmDialog(false)}
-                        className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition"
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={handleConfirmSubmission}
-                        className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-medium transition"
-                    >
-                        Confirm
-                    </button>
-                </div>
+                </form>
             </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
