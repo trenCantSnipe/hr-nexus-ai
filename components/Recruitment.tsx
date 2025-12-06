@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MOCK_CANDIDATES, MOCK_INTERVIEWS } from '../constants';
 import { Candidate, Interview } from '../types';
-import { Calendar, Clock, User, Sparkles, Mail, Send, X, CheckCircle2, Search, Filter, ArrowUpDown, Bold, Italic, Link as LinkIcon, List, Paperclip, Mic, Play, Square, Award, MessageSquare, Volume2, ArrowRight, Loader2, Users, Wand2, CalendarCheck, StickyNote, Save, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, User, Sparkles, Mail, Send, X, CheckCircle2, Search, Filter, ArrowUpDown, Bold, Italic, Link as LinkIcon, List, Paperclip, Mic, Play, Square, Award, MessageSquare, Volume2, ArrowRight, Loader2, Users, Wand2, CalendarCheck, StickyNote, Save, Briefcase } from 'lucide-react';
 import { generateInterviewQuestions, analyzeCandidateResponse, generateSpeech, draftRecruitmentEmail, suggestInterviewTime } from '../services/geminiService';
 
 const getStatusColor = (status: string) => {
@@ -24,9 +24,10 @@ const Recruitment: React.FC = () => {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   
   // Filter & Sort State
-  const [searchRole, setSearchRole] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [filterRole, setFilterRole] = useState('All');
   const [filterStatus, setFilterStatus] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<'name' | 'date'>('date');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'role'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   // Interview Filter State
@@ -118,24 +119,35 @@ Answer: ${t.answer}
       resetInterviewSession();
   };
 
+  // Derived state for unique roles
+  const uniqueRoles = useMemo(() => {
+    const roles = Array.from(new Set(candidates.map(c => c.role)));
+    return ['All', ...roles.sort()];
+  }, [candidates]);
+
   // Filter & Sort Logic
   const filteredCandidates = useMemo(() => {
     return candidates
       .filter(c => {
-        const matchesRole = c.role.toLowerCase().includes(searchRole.toLowerCase());
+        const matchesSearch = c.name.toLowerCase().includes(searchText.toLowerCase()) || 
+                              c.email.toLowerCase().includes(searchText.toLowerCase()) ||
+                              c.role.toLowerCase().includes(searchText.toLowerCase());
+        const matchesRole = filterRole === 'All' || c.role === filterRole;
         const matchesStatus = filterStatus === 'All' || c.status === filterStatus;
-        return matchesRole && matchesStatus;
+        return matchesSearch && matchesRole && matchesStatus;
       })
       .sort((a, b) => {
         let comparison = 0;
         if (sortBy === 'name') {
           comparison = a.name.localeCompare(b.name);
+        } else if (sortBy === 'role') {
+            comparison = a.role.localeCompare(b.role);
         } else {
           comparison = new Date(a.appliedDate).getTime() - new Date(b.appliedDate).getTime();
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [candidates, searchRole, filterStatus, sortBy, sortOrder]);
+  }, [candidates, searchText, filterRole, filterStatus, sortBy, sortOrder]);
 
   const filteredInterviews = useMemo(() => {
     return interviews.filter(i => filterInterviewType === 'All' || i.type === filterInterviewType);
@@ -414,19 +426,19 @@ Answer: ${t.answer}
 
             {/* Filter & Sort Toolbar */}
             <div className="p-3 bg-white border-b border-slate-100 space-y-3">
-                {/* Search Role */}
+                {/* Search */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <input 
                         type="text" 
-                        placeholder="Filter by role..." 
+                        placeholder="Search candidates..." 
                         className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
-                        value={searchRole}
-                        onChange={(e) => setSearchRole(e.target.value)}
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
                     />
-                     {searchRole && (
+                     {searchText && (
                         <button 
-                            onClick={() => setSearchRole('')}
+                            onClick={() => setSearchText('')}
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
                         >
                             <X size={12} />
@@ -434,8 +446,25 @@ Answer: ${t.answer}
                     )}
                 </div>
                 
-                {/* Status & Sort */}
+                {/* Filter Row */}
                 <div className="flex gap-2">
+                    {/* Role Filter */}
+                    <div className="relative flex-1">
+                        <select 
+                            className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                            value={filterRole}
+                            onChange={(e) => setFilterRole(e.target.value)}
+                        >
+                            {uniqueRoles.map(role => (
+                                <option key={role} value={role}>{role === 'All' ? 'All Roles' : role}</option>
+                            ))}
+                        </select>
+                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                             <Briefcase size={12} />
+                        </div>
+                    </div>
+
+                    {/* Status Filter */}
                     <div className="relative flex-1">
                         <select 
                             className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
@@ -453,25 +482,28 @@ Answer: ${t.answer}
                              <Filter size={12} />
                         </div>
                     </div>
-
-                    <div className="relative flex-1">
-                         <select 
-                            className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                            value={`${sortBy}-${sortOrder}`}
-                            onChange={(e) => {
-                                const [key, order] = e.target.value.split('-');
-                                setSortBy(key as 'name'|'date');
-                                setSortOrder(order as 'asc'|'desc');
-                            }}
-                        >
-                            <option value="date-desc">Newest</option>
-                            <option value="date-asc">Oldest</option>
-                            <option value="name-asc">Name (A-Z)</option>
-                            <option value="name-desc">Name (Z-A)</option>
-                        </select>
-                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                             <ArrowUpDown size={12} />
-                        </div>
+                </div>
+                
+                {/* Sort Row */}
+                <div className="relative">
+                     <select 
+                        className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                        value={`${sortBy}-${sortOrder}`}
+                        onChange={(e) => {
+                            const [key, order] = e.target.value.split('-');
+                            setSortBy(key as any);
+                            setSortOrder(order as any);
+                        }}
+                    >
+                        <option value="date-desc">Newest Applied</option>
+                        <option value="date-asc">Oldest Applied</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="role-asc">Role (A-Z)</option>
+                        <option value="role-desc">Role (Z-A)</option>
+                    </select>
+                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                         <ArrowUpDown size={12} />
                     </div>
                 </div>
             </div>
@@ -626,7 +658,7 @@ Answer: ${t.answer}
                                          </button>
                                          <div className="h-4 w-px bg-slate-300 mx-1"></div>
                                          <button onClick={() => setShowCcBcc(!showCcBcc)} className="text-xs text-slate-500 hover:text-blue-600 font-medium px-2 py-1 rounded hover:bg-slate-200 transition">
-                                            CC/BCC
+                                            {showCcBcc ? 'Hide CC/BCC' : 'Add CC/BCC'}
                                          </button>
                                     </div>
                                 </div>
