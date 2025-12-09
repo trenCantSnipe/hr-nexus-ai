@@ -10,8 +10,8 @@ import LiveAssistant from './components/LiveAssistant';
 import Login from './components/Login';
 import EmployeePortal from './components/EmployeePortal';
 import AdminAssistant from './components/AdminAssistant';
-import AdminReports from './components/AdminReports';
-import { ViewState, UserRole, Task, DailyReport } from './types';
+import AdminMessages from './components/AdminMessages';
+import { ViewState, UserRole, Task, DirectMessage } from './types';
 import { MOCK_TASKS, MOCK_REPORTS } from './constants';
 
 const App: React.FC = () => {
@@ -22,10 +22,22 @@ const App: React.FC = () => {
   
   // Lifted state for tasks so Admin can modify and Employee can view
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
-  // Shared state for daily reports
-  const [reports, setReports] = useState<DailyReport[]>(MOCK_REPORTS);
+  
+  // Shared state for Direct Messages (replaces daily reports)
+  const [messages, setMessages] = useState<DirectMessage[]>(
+      MOCK_REPORTS.map(r => ({
+          id: r.id,
+          employeeId: '1', // Defaulting mock reports to Employee 1 for demo
+          sender: 'EMPLOYEE',
+          text: r.content,
+          timestamp: r.timestamp,
+          isReport: true,
+          targetsMet: r.targetsMet
+      }))
+  );
+  
   // Notification state for Admin
-  const [unreadReportCount, setUnreadReportCount] = useState(0);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   const handleLogin = (role: UserRole, employeeId?: string) => {
     setUserRole(role);
@@ -42,14 +54,14 @@ const App: React.FC = () => {
     setIsLoggedIn(false);
     setUserRole('ADMIN'); // Reset to default safely
     setCurrentEmployeeId(undefined);
-    setUnreadReportCount(0);
+    setUnreadMessageCount(0);
   };
 
   const handleViewChange = (view: ViewState) => {
     setCurrentView(view);
-    // Clear notifications if Admin views the reports
-    if (view === ViewState.ADMIN_REPORTS) {
-      setUnreadReportCount(0);
+    // Clear notifications if Admin views the messages
+    if (view === ViewState.ADMIN_MESSAGES) {
+      setUnreadMessageCount(0);
     }
   };
 
@@ -75,30 +87,34 @@ const App: React.FC = () => {
     console.log(`Sending email to all employees.\nSubject: ${subject}\nBody: ${body}`);
   };
 
-  const handleReportSubmission = (content: string, targetsMet: boolean) => {
-    const employeeName = currentEmployeeId ? `Employee #${currentEmployeeId}` : "Unknown Employee";
-    const newReport: DailyReport = {
+  const handleSendMessage = (text: string, employeeId: string, sender: 'ADMIN' | 'EMPLOYEE', isReport: boolean, targetsMet?: boolean) => {
+    const newMessage: DirectMessage = {
         id: Date.now().toString(),
-        employeeName: employeeName,
-        date: new Date().toISOString().split('T')[0],
-        content: content,
-        targetsMet: targetsMet,
-        timestamp: new Date()
+        employeeId: employeeId,
+        sender: sender,
+        text: text,
+        timestamp: new Date(),
+        isReport: isReport,
+        targetsMet: targetsMet
     };
-    setReports(prev => [newReport, ...prev]);
-    // Increment notification for Admin
-    setUnreadReportCount(prev => prev + 1);
+    
+    setMessages(prev => [...prev, newMessage]);
+
+    // If Employee sends, notify Admin
+    if (sender === 'EMPLOYEE') {
+        setUnreadMessageCount(prev => prev + 1);
+    }
   };
 
   const renderContent = () => {
     if (userRole === 'EMPLOYEE') {
-       // Force remount when employee ID changes to clear local chat state if needed
        return (
          <EmployeePortal 
            key={currentEmployeeId}
            employeeId={currentEmployeeId || '0'}
            tasks={tasks} 
-           onSubmitReport={handleReportSubmission} 
+           messages={messages}
+           onSendMessage={handleSendMessage}
            onUpdateTaskStatus={handleUpdateTaskStatus}
          />
        );
@@ -122,10 +138,16 @@ const App: React.FC = () => {
           <AdminAssistant 
             onAddTask={handleAddTask} 
             onBroadcastEmail={handleBroadcastEmail} 
+            onSendMessage={(empId, msg) => handleSendMessage(msg, empId, 'ADMIN', false)}
           />
         );
-      case ViewState.ADMIN_REPORTS:
-        return <AdminReports reports={reports} />;
+      case ViewState.ADMIN_MESSAGES:
+        return (
+            <AdminMessages 
+                messages={messages} 
+                onSendMessage={(empId, msg) => handleSendMessage(msg, empId, 'ADMIN', false)}
+            />
+        );
       default:
         return <Dashboard />;
     }
@@ -142,7 +164,7 @@ const App: React.FC = () => {
         setView={handleViewChange} 
         userRole={userRole} 
         onLogout={handleLogout}
-        notificationCount={unreadReportCount}
+        notificationCount={unreadMessageCount}
       />
       <main className="flex-1 h-full relative">
         {renderContent()}

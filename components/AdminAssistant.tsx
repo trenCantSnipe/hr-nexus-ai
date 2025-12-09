@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { chatWithAdminTools } from '../services/geminiService';
 import { ChatMessage, Task } from '../types';
@@ -7,14 +8,15 @@ import ReactMarkdown from 'react-markdown';
 interface AdminAssistantProps {
   onAddTask: (task: { title: string; description: string; period: 'Day' | 'Week' | 'Month'; status?: string }) => void;
   onBroadcastEmail: (subject: string, body: string) => void;
+  onSendMessage: (employeeId: string, message: string) => void;
 }
 
-const AdminAssistant: React.FC<AdminAssistantProps> = ({ onAddTask, onBroadcastEmail }) => {
+const AdminAssistant: React.FC<AdminAssistantProps> = ({ onAddTask, onBroadcastEmail, onSendMessage }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
         id: '1',
         role: 'model',
-        text: 'Welcome, Admin. I am your AI Command Center. I can help you assign tasks to all employees or broadcast emails. You can also specify the initial status (e.g., "Assign a task In Progress"). Just ask me!',
+        text: 'Welcome, Admin. I am your AI Command Center. I can help you assign tasks, broadcast emails, or message specific employees directly. Just ask me!',
         timestamp: new Date()
     }
   ]);
@@ -68,6 +70,10 @@ const AdminAssistant: React.FC<AdminAssistantProps> = ({ onAddTask, onBroadcastE
                     const args = call.args as any;
                     onBroadcastEmail(args.subject, args.body);
                     aiResponseText = `📧 I have broadcasted the email with subject "${args.subject}" to all employees.`;
+                } else if (call.name === 'message_employee') {
+                    const args = call.args as any;
+                    onSendMessage(args.employeeId, args.message);
+                    aiResponseText = `💬 Sent message to Employee #${args.employeeId}: "${args.message}"`;
                 }
             }
         }
@@ -141,7 +147,7 @@ const AdminAssistant: React.FC<AdminAssistantProps> = ({ onAddTask, onBroadcastE
                 <input 
                     type="text" 
                     className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-5 py-4 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 pr-12 text-slate-100 placeholder:text-slate-500 transition-all"
-                    placeholder="e.g., 'Assign a task to everyone to submit Q3 goals by Friday' or 'Email everyone about the holiday party'"
+                    placeholder="e.g., 'Message Employee #3 asking about the report'"
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     disabled={isLoading}

@@ -37,7 +37,7 @@ export enum ViewState {
   LIVE_VOICE = 'LIVE_VOICE',
   EMPLOYEE_PORTAL = 'EMPLOYEE_PORTAL',
   ADMIN_ASSISTANT = 'ADMIN_ASSISTANT',
-  ADMIN_REPORTS = 'ADMIN_REPORTS'
+  ADMIN_MESSAGES = 'ADMIN_MESSAGES'
 }
 
 export interface ChatMessage {
@@ -59,6 +59,16 @@ export interface Task {
   description: string;
   period: 'Day' | 'Week' | 'Month';
   status: 'Not Started' | 'In Progress' | 'Completed';
+}
+
+export interface DirectMessage {
+  id: string;
+  employeeId: string; // The ID of the employee involved in the chat
+  sender: 'ADMIN' | 'EMPLOYEE';
+  text: string;
+  timestamp: Date;
+  isReport?: boolean; // If true, it was sent via the daily report form
+  targetsMet?: boolean; // specific to reports
 }
 
 export interface DailyReport {

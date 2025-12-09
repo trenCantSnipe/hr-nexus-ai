@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Modality, Type, LiveServerMessage, FunctionDeclaration } from "@google/genai";
 import { base64ToUint8Array, createPcmBlob, decodeAudioData } from "../utils/audioUtils";
 
@@ -294,6 +295,19 @@ const emailFunctionDeclaration: FunctionDeclaration = {
   }
 };
 
+const messageEmployeeFunctionDeclaration: FunctionDeclaration = {
+    name: "message_employee",
+    description: "Send a direct message to a specific employee.",
+    parameters: {
+        type: Type.OBJECT,
+        properties: {
+            employeeId: { type: Type.STRING, description: "The ID of the employee (e.g., '1', '2', '20')." },
+            message: { type: Type.STRING, description: "The message content to send." }
+        },
+        required: ["employeeId", "message"]
+    }
+};
+
 export const chatWithAdminTools = async (
   history: { role: 'user' | 'model'; text: string }[],
   currentMessage: string
@@ -308,7 +322,7 @@ export const chatWithAdminTools = async (
             model: 'gemini-2.5-flash',
             contents: contents,
             config: {
-                tools: [{ functionDeclarations: [taskFunctionDeclaration, emailFunctionDeclaration] }],
+                tools: [{ functionDeclarations: [taskFunctionDeclaration, emailFunctionDeclaration, messageEmployeeFunctionDeclaration] }],
             }
         });
         

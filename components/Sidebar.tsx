@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ViewState, UserRole } from '../types';
-import { LayoutDashboard, Users, FileText, Mic, MessageSquare, ClipboardCheck, Briefcase, LogOut, Terminal, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Mic, MessageSquare, ClipboardCheck, Briefcase, LogOut, Terminal, MessageCircle } from 'lucide-react';
 
 interface SidebarProps {
   currentView: ViewState;
@@ -15,7 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLog
   
   const adminItems = [
     { id: ViewState.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-    { id: ViewState.ADMIN_REPORTS, label: 'Daily Reports', icon: ClipboardList, hasNotification: true },
+    { id: ViewState.ADMIN_MESSAGES, label: 'Messages', icon: MessageCircle, hasNotification: true },
     { id: ViewState.RECRUITMENT, label: 'Recruitment', icon: Users },
     { id: ViewState.PERFORMANCE, label: 'Performance', icon: FileText },
     { id: ViewState.AUDIT, label: 'Audit & Compliance', icon: ClipboardCheck },
