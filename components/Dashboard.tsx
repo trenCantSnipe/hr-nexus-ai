@@ -1,9 +1,15 @@
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { MOCK_EMPLOYEES, MOCK_CANDIDATES } from '../constants';
+import { MOCK_EMPLOYEES } from '../constants';
+import { Candidate } from '../types';
 import { Users, Calendar, TrendingUp } from 'lucide-react';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+    candidates: Candidate[];
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ candidates }) => {
   const deptData = MOCK_EMPLOYEES.reduce((acc: any, curr) => {
     acc[curr.department] = (acc[curr.department] || 0) + 1;
     return acc;
@@ -16,7 +22,7 @@ const Dashboard: React.FC = () => {
 
   const stats = [
     { title: 'Total Employees', value: MOCK_EMPLOYEES.length, icon: Users, color: 'bg-blue-500' },
-    { title: 'Open Roles', value: MOCK_CANDIDATES.length, icon: Calendar, color: 'bg-green-500' },
+    { title: 'Open Roles', value: candidates.length, icon: Calendar, color: 'bg-green-500' },
     { title: 'Pending Reviews', value: 3, icon: TrendingUp, color: 'bg-purple-500' },
   ];
 

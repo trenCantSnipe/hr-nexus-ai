@@ -11,8 +11,8 @@ import Login from './components/Login';
 import EmployeePortal from './components/EmployeePortal';
 import AdminAssistant from './components/AdminAssistant';
 import AdminMessages from './components/AdminMessages';
-import { ViewState, UserRole, Task, DirectMessage } from './types';
-import { MOCK_TASKS, MOCK_REPORTS } from './constants';
+import { ViewState, UserRole, Task, DirectMessage, Candidate, Interview } from './types';
+import { MOCK_TASKS, MOCK_REPORTS, MOCK_CANDIDATES, MOCK_INTERVIEWS } from './constants';
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -20,7 +20,9 @@ const App: React.FC = () => {
   const [currentEmployeeId, setCurrentEmployeeId] = useState<string | undefined>(undefined);
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
   
-  // Lifted state for tasks so Admin can modify and Employee can view
+  // Lifted State
+  const [candidates, setCandidates] = useState<Candidate[]>(MOCK_CANDIDATES);
+  const [interviews, setInterviews] = useState<Interview[]>(MOCK_INTERVIEWS);
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
   
   // Shared state for Direct Messages (replaces daily reports)
@@ -65,6 +67,8 @@ const App: React.FC = () => {
     }
   };
 
+  // --- Handlers for State Updates ---
+
   const handleAddTask = (taskData: { title: string; description: string; period: 'Day' | 'Week' | 'Month'; status?: string }) => {
     const newTask: Task = {
       title: taskData.title,
@@ -83,7 +87,6 @@ const App: React.FC = () => {
   };
 
   const handleBroadcastEmail = (subject: string, body: string) => {
-    // Simulate email broadcast
     console.log(`Sending email to all employees.\nSubject: ${subject}\nBody: ${body}`);
   };
 
@@ -100,10 +103,17 @@ const App: React.FC = () => {
     
     setMessages(prev => [...prev, newMessage]);
 
-    // If Employee sends, notify Admin
     if (sender === 'EMPLOYEE') {
         setUnreadMessageCount(prev => prev + 1);
     }
+  };
+
+  const handleAddInterview = (interview: Interview) => {
+      setInterviews(prev => [...prev, interview]);
+  };
+
+  const handleUpdateCandidate = (candidate: Candidate) => {
+      setCandidates(prev => prev.map(c => c.id === candidate.id ? candidate : c));
   };
 
   const renderContent = () => {
@@ -122,9 +132,16 @@ const App: React.FC = () => {
 
     switch (currentView) {
       case ViewState.DASHBOARD:
-        return <Dashboard />;
+        return <Dashboard candidates={candidates} />;
       case ViewState.RECRUITMENT:
-        return <Recruitment />;
+        return (
+            <Recruitment 
+                candidates={candidates}
+                interviews={interviews}
+                onUpdateCandidate={handleUpdateCandidate}
+                onAddInterview={handleAddInterview}
+            />
+        );
       case ViewState.PERFORMANCE:
         return <Performance />;
       case ViewState.AUDIT:
@@ -139,6 +156,8 @@ const App: React.FC = () => {
             onAddTask={handleAddTask} 
             onBroadcastEmail={handleBroadcastEmail} 
             onSendMessage={(empId, msg) => handleSendMessage(msg, empId, 'ADMIN', false)}
+            onAddInterview={handleAddInterview}
+            candidates={candidates}
           />
         );
       case ViewState.ADMIN_MESSAGES:
@@ -149,7 +168,7 @@ const App: React.FC = () => {
             />
         );
       default:
-        return <Dashboard />;
+        return <Dashboard candidates={candidates} />;
     }
   };
 

@@ -308,6 +308,21 @@ const messageEmployeeFunctionDeclaration: FunctionDeclaration = {
     }
 };
 
+const scheduleInterviewFunctionDeclaration: FunctionDeclaration = {
+  name: "schedule_interview",
+  description: "Schedule an interview for a candidate.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      candidateName: { type: Type.STRING, description: "The name of the candidate." },
+      date: { type: Type.STRING, description: "Date of interview in YYYY-MM-DD format." },
+      time: { type: Type.STRING, description: "Time of interview in HH:MM format." },
+      type: { type: Type.STRING, description: "Type of interview (Technical, Behavioral, Screening).", enum: ["Technical", "Behavioral", "Screening"] }
+    },
+    required: ["candidateName", "date", "time", "type"]
+  }
+};
+
 export const chatWithAdminTools = async (
   history: { role: 'user' | 'model'; text: string }[],
   currentMessage: string
@@ -322,7 +337,12 @@ export const chatWithAdminTools = async (
             model: 'gemini-2.5-flash',
             contents: contents,
             config: {
-                tools: [{ functionDeclarations: [taskFunctionDeclaration, emailFunctionDeclaration, messageEmployeeFunctionDeclaration] }],
+                tools: [{ functionDeclarations: [
+                    taskFunctionDeclaration, 
+                    emailFunctionDeclaration, 
+                    messageEmployeeFunctionDeclaration,
+                    scheduleInterviewFunctionDeclaration 
+                ] }],
             }
         });
         

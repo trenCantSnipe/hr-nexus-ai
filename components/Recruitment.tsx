@@ -1,9 +1,15 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { MOCK_CANDIDATES, MOCK_INTERVIEWS } from '../constants';
 import { Candidate, Interview } from '../types';
 import { Calendar, Clock, User, Sparkles, Mail, Send, X, CheckCircle2, Search, Filter, ArrowUpDown, Bold, Italic, Link as LinkIcon, List, Paperclip, Mic, Play, Square, Award, MessageSquare, Volume2, ArrowRight, Loader2, Users, Wand2, CalendarCheck, StickyNote, Save, Briefcase } from 'lucide-react';
 import { generateInterviewQuestions, analyzeCandidateResponse, generateSpeech, draftRecruitmentEmail, suggestInterviewTime } from '../services/geminiService';
+
+interface RecruitmentProps {
+    candidates: Candidate[];
+    interviews: Interview[];
+    onUpdateCandidate: (candidate: Candidate) => void;
+    onAddInterview: (interview: Interview) => void;
+}
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -16,9 +22,7 @@ const getStatusColor = (status: string) => {
     }
 };
 
-const Recruitment: React.FC = () => {
-  const [candidates, setCandidates] = useState<Candidate[]>(MOCK_CANDIDATES);
-  const [interviews, setInterviews] = useState<Interview[]>(MOCK_INTERVIEWS);
+const Recruitment: React.FC<RecruitmentProps> = ({ candidates, interviews, onUpdateCandidate, onAddInterview }) => {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<string[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
@@ -110,11 +114,9 @@ Answer: ${t.answer}
       const updatedNotes = (noteInput || '') + newNoteEntry;
       setNoteInput(updatedNotes);
       
-      const updatedCandidates = candidates.map(c => 
-          c.id === selectedCandidate.id ? { ...c, notes: updatedNotes } : c
-      );
-      setCandidates(updatedCandidates);
-      setSelectedCandidate({ ...selectedCandidate, notes: updatedNotes });
+      const updatedCandidate = { ...selectedCandidate, notes: updatedNotes };
+      onUpdateCandidate(updatedCandidate);
+      setSelectedCandidate(updatedCandidate);
       
       resetInterviewSession();
   };
@@ -259,7 +261,7 @@ Answer: ${t.answer}
         type: 'Technical'
     };
     
-    setInterviews([...interviews, newInterview]);
+    onAddInterview(newInterview);
     alert(`Interview scheduled for ${selectedCandidate.name} on ${scheduleDate} at ${scheduleTime}`);
     setScheduleDate('');
     setScheduleTime('');
@@ -289,7 +291,7 @@ Answer: ${t.answer}
           interviewer: 'AI Scheduler',
           type: 'Technical'
       };
-      setInterviews([...interviews, newInterview]);
+      onAddInterview(newInterview);
       alert(`✅ Confirmed: Interview with ${selectedCandidate.name} on ${autoScheduleProposal.date} at ${autoScheduleProposal.time}`);
       setAutoScheduleProposal(null);
   };
@@ -379,26 +381,20 @@ Answer: ${t.answer}
   const handleStatusChange = (newStatus: string) => {
       if (!selectedCandidate) return;
 
-      const updatedCandidates = candidates.map(c => 
-          c.id === selectedCandidate.id ? { ...c, status: newStatus as any } : c
-      );
-      setCandidates(updatedCandidates);
-      
-      const updatedSelected = { ...selectedCandidate, status: newStatus as any };
-      setSelectedCandidate(updatedSelected);
+      const updatedCandidate = { ...selectedCandidate, status: newStatus as any };
+      onUpdateCandidate(updatedCandidate);
+      setSelectedCandidate(updatedCandidate);
 
       if (newStatus === 'Offer' || newStatus === 'Rejected') {
-          triggerAutomatedEmail(updatedSelected, newStatus);
+          triggerAutomatedEmail(updatedCandidate, newStatus);
       }
   };
 
   const handleSaveNote = () => {
       if(!selectedCandidate) return;
-      const updatedCandidates = candidates.map(c => 
-          c.id === selectedCandidate.id ? { ...c, notes: noteInput } : c
-      );
-      setCandidates(updatedCandidates);
-      setSelectedCandidate({ ...selectedCandidate, notes: noteInput });
+      const updatedCandidate = { ...selectedCandidate, notes: noteInput };
+      onUpdateCandidate(updatedCandidate);
+      setSelectedCandidate(updatedCandidate);
       alert("Notes updated successfully.");
   };
 
